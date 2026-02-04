@@ -120,3 +120,4 @@ if(mpu.dmpGetCurrentFIFOPacket(FIFOBuffer)) { // Get the Latest packet
     delay(10);
     }  
 }
+ 
