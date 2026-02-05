@@ -102,21 +102,21 @@ if(mpu.dmpGetCurrentFIFOPacket(FIFOBuffer)) { // Get the Latest packet
     mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
     mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
 
-    Serial.print("World Frame Accel: ");
-    Serial.print(aaWorld.x / 16384.0 * 9.80665);  // Convert to g's and then to m/s^2
-    Serial.print(", ");
-    Serial.print(aaWorld.y / 16384.0 * 9.80665);
-    Serial.print(", ");
-    Serial.println(aaWorld.z / 16384.0 * 9.80665);
-
-    Serial.print("Quaternion: ");
+    //Serial.print("Quaternion: ");
     Serial.print(q.w);
     Serial.print(", ");
     Serial.print(q.x);
     Serial.print(", ");
     Serial.print(q.y);
     Serial.print(", ");
-    Serial.println(q.z);
+    Serial.print(q.z);
+    Serial.print(", ");
+    //Serial.print("World Frame Accel: ");
+    Serial.print(aaReal.x / 16384.0 * 9.80665);  // Convert to g's and then to m/s^2
+    Serial.print(", ");
+    Serial.print(aaReal.y / 16384.0 * 9.80665);
+    Serial.print(", ");
+    Serial.println(aaReal.z / 16384.0 * 9.80665);
     delay(10);
     }  
 }
