@@ -20,22 +20,20 @@ aZ = data[:, 6]
 imuData = imu.IMUprocess(qW, qX, qY, qZ, aX, aY, aZ)
 absAccData = imuData.absAcc()
 
+plt.figure("Absolute Acceleration")
 plt.plot(absAccData)
 plt.title("Absolute Acceleration from IMU data")
 plt.xlabel("Samples")
 plt.ylabel("Acceleration (m/s^2)")
 plt.grid()
-plt.legend(["|a|"])
-
-
-plt.show()
+plt.legend(["Acceleration"])
 
 plt.figure("Absolute Velocity")
-absVelData = imuData.absVelocity()*3.6  # Convert m/s to km/h
+absVelData = imuData.absSpeed()*3.6  # Convert m/s to km/h
 plt.plot(absVelData)
 plt.title("Absolute Velocity from IMU data")
 plt.xlabel("Samples")
-plt.ylabel("Velocity (km/h)")
+plt.ylabel("Speed (km/h)")
 plt.grid()
-plt.legend(["|v|"])
+plt.legend(["Speed"])
 plt.show()

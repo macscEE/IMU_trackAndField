@@ -1,58 +1,49 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from scipy.integrate import cumulative_trapezoid
+from scipy import signal
 
 class IMUprocess:
     
-    def __init__(self, qW, qX, qY, qZ, aX, aY, aZ, delay=0.01):
-        # np.column_stack trasforma le tue colonne da (N,) a una matrice (N, 3)
-        # Questo permette a NumPy di processare tutti i campioni insieme velocemente
+    def __init__(self, qW, qX, qY, qZ, aX, aY, aZ, delay_ms=10):
+        self.__dt = delay_ms / 1000.0
+        self.__fs = 1.0 / self.__dt
         self.__acc = np.column_stack((aX, aY, aZ))
-        
-        # SciPy richiede i quaternioni nel formato [x, y, z, w]
-        # Li impiliamo in una matrice (N, 4)
         self.__quat = np.column_stack((qX, qY, qZ, qW))
-        self.__delay = delay
+
+    def accVec(self):
+        r = R.from_quat(self.__quat)
+        gravity_world = np.array([0, 0, 9.80665])
+        gravity_body = r.inv().apply(gravity_world)
+        acc_Vec = self.__acc - gravity_body
+        return acc_Vec
 
     def absAcc(self):
-        # 1. Creiamo l'oggetto rotazione per tutti gli N campioni
-        # Se i quaternioni dal DMP non sono perfettamente unitari, 
-        # aggiungiamo una normalizzazione interna.
-        r = R.from_quat(self.__quat)
+        acc_Vec = self.accVec()
+        return np.linalg.norm(acc_Vec, axis=1)
+
+    def speedVec(self):
+        # --- CORREZIONE QUI ---
+        # NON usare absAcc() qui, altrimenti perdi le direzioni X,Y,Z.
+        # Usa accVec() per mantenere la matrice (N, 3)
+        acc_linear = self.accVec() 
+
+        # --- FILTRO PASSA-ALTO ---
+        sos = signal.butter(2, 0.7, 'hp', fs=self.__fs, output='sos')
         
-        # 2. Definiamo il vettore gravità standard (m/s^2)
-        gravity_world = np.array([0, 0, 9.80665])
+        # sosfilt funziona su axis=-1 di default, ma qui vogliamo filtrare 
+        # lungo il tempo (righe), quindi axis=0 va bene.
+        acc_filtered = signal.sosfilt(sos, acc_linear, axis=0)
+
+        # 1. Integrazione (Ora integriamo un vettore 3D, ottenendo una velocità 3D)
+        vel = cumulative_trapezoid(acc_filtered, dx=self.__dt, initial=0, axis=0)
+
+        # 2. Secondo filtraggio
+        speed_vec = signal.sosfilt(sos, vel, axis=0)
         
-        # 3. Ruotiamo la gravità dal sistema "Mondo" al sistema "Sensore" (Body)
-        # Usiamo r.inv() perché i dati dell'accelerometro sono nel sistema locale.
-        # gravity_body sarà una matrice (N, 3)
-        gravity_body = r.inv().apply(gravity_world)
-        
-        # 4. Sottraiamo la gravità orientata dall'accelerazione misurata
-        # Ora la sottrazione avviene riga per riga correttamente (N, 3) - (N, 3)
-        acc_linear = self.__acc - gravity_body
-        
-        # 5. Calcoliamo la norma (modulo) del vettore risultante per ogni istante
-        # axis=1 indica che vogliamo la norma lungo le coordinate (x,y,z) per ogni riga
-        abs_acc = np.linalg.norm(acc_linear, axis=1)
-        
-        return abs_acc 
+        # Ora speed_vec è una matrice (N, 3), non un array (N,)
+        return speed_vec
     
-    def absVelocity(self):
-        # 1. Otteniamo l'accelerazione lineare (vettoriale Nx3)
-        r = R.from_quat(self.__quat)
-        gravity_world = np.array([0, 0, 9.80665])
-        gravity_body = r.inv().apply(gravity_world)
-        acc_linear = self.__acc - gravity_body
-        
-        # 2. Integrazione per ogni asse (X, Y, Z)
-        # Usiamo l'integrazione trapezoidale per maggiore precisione
-        vel_x = cumulative_trapezoid(acc_linear[:, 0], dx=self.__delay, initial=0)
-        vel_y = cumulative_trapezoid(acc_linear[:, 1], dx=self.__delay, initial=0)
-        vel_z = cumulative_trapezoid(acc_linear[:, 2], dx=self.__delay, initial=0)
-        
-        # 3. Calcolo del modulo della velocità (Velocità Assoluta)
-        vel_vector = np.column_stack((vel_x, vel_y, vel_z))
-        abs_vel = np.linalg.norm(vel_vector, axis=1)
-        
-        return abs_vel
+    def absSpeed(self):
+        # Ora questo funzionerà perché speedVec() ritorna 3 dimensioni
+        return np.linalg.norm(self.speedVec(), axis=1)
