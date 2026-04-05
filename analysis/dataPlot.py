@@ -28,9 +28,13 @@ plt.ylabel("Acceleration (m/s^2)")
 plt.grid()
 plt.legend(["Acceleration"])
 
-plt.figure("Absolute Velocity")
+# Plotting the speed data with highlighted max speed
 absVelData = imuData.absSpeed()*3.6  # Convert m/s to km/h
+IndexMaxSpeed = np.argmax(absVelData)
+plt.figure("Absolute Velocity")
 plt.plot(absVelData)
+plt.plot(IndexMaxSpeed, absVelData[IndexMaxSpeed], 'ro')  # Highlight max speed
+plt.annotate(f'Max Speed: {absVelData[IndexMaxSpeed]:.2f} km/h', xy=(IndexMaxSpeed, absVelData[IndexMaxSpeed]), xytext=(0, absVelData[IndexMaxSpeed]), fontsize=12)
 plt.title("Absolute Velocity from IMU data")
 plt.xlabel("Samples")
 plt.ylabel("Speed (km/h)")
